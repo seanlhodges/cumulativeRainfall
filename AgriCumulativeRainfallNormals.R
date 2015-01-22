@@ -16,7 +16,7 @@ RSite<-c("Pohangina at Makawakawa Divide")
 #RSite<-c("Mangatainoka at Hillwood Hukanui")
 #RSite<-c("Whanganui at Pipiriki")
 #RSite<-c("Mangahao at Kakariki")
-pickYear<-2008
+pickYear<-2014
 
 cumulMax<-6000
 barPlotMax<-600
@@ -24,7 +24,7 @@ period<-"AVAILABLE" # "THIRTY YEARS"
 
 ###########################################################
 ## PROCESSING FULL RAINFALL RECORD
-url<- paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=1990-07-01&to=2013-07-01",sep="")
+url<- paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=1981-01-02&to=2012-01-01",sep="")
 getData.xml <- xmlInternalTreeParse(url)
 sites<-sapply(getNodeSet(getData.xml,"//Measurement/@SiteName"),as.character)
 
@@ -34,7 +34,7 @@ site <- rep(sites[1],length(day))
 
 total<-as.numeric(total)
 day<-as.Date(day)
-
+day<-day-1   ## Shift date back by one day. Rainfall is total to midnight and gets filed against yyyymmdd 24:00m, which is the same as yymmdd+1 00:00 
 dd<-as.numeric(format(day,"%d"))
 mm<-as.numeric(format(day,"%m"))
 yy<-as.numeric(format(day,"%Y"))
@@ -45,17 +45,18 @@ as.factor(df$yy)
 
 ###########################################################
 ## PROCESSING CURRENT YEAR RAINFALL RECORD
-url2 <- paste("http://",HSERVER,".horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=0:00:00&from=2014-07-01&to=2015-01-22",sep="")
+url2 <- paste("http://",HSERVER,".horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=0:00:00&from=2014-07-02&to=2015-07-01",sep="")
 getThisYear.xml <- xmlInternalTreeParse(url2)
 csites<-sapply(getNodeSet(getThisYear.xml,"//Measurement/@SiteName"),as.character)
 
 
 cday <- sapply(getNodeSet(getThisYear.xml, paste("//Hilltop/Measurement[@SiteName='",csites[1],"']/Data/E/../E/T",sep="")), xmlValue)
 ctotal <- sapply(getNodeSet(getThisYear.xml, paste("//Hilltop/Measurement[@SiteName='",csites[1],"']/Data/E/../E/I1",sep="")), xmlValue)
-csite <- rep(sites[1],length(cday))
+csite <- rep(csites[1],length(cday))
 
 ctotal<-as.numeric(ctotal)
 cday<-as.Date(cday)
+cday<-cday-1   ## Shift date back by one day. Rainfall is total to midnight and gets filed against yyyymmdd 24:00m, which is the same as yymmdd+1 00:00 
 
 cdd<-as.numeric(format(cday,"%d"))
 cmm<-as.numeric(format(cday,"%m"))
@@ -65,56 +66,102 @@ cddmm<-as.character(format(cday,"%d-%B"))
 cdf <- data.frame(cday,ctotal,csite,cddmm,cyy,cmm, stringsAsFactors=FALSE)
 as.factor(cdf$cyy)
 
+###########################################################
+## PROCESSING LAST YEARS RAINFALL RECORD
+url3<- paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=2013-07-02&to=2014-07-01",sep="")
+getLastYear.xml <- xmlInternalTreeParse(url3)
+lsites<-sapply(getNodeSet(getLastYear.xml,"//Measurement/@SiteName"),as.character)
 
 
+lday <- sapply(getNodeSet(getLastYear.xml, paste("//Hilltop/Measurement[@SiteName='",lsites[1],"']/Data/E/../E/T",sep="")), xmlValue)
+ltotal <- sapply(getNodeSet(getLastYear.xml, paste("//Hilltop/Measurement[@SiteName='",lsites[1],"']/Data/E/../E/I1",sep="")), xmlValue)
+lsite <- rep(lsites[1],length(lday))
+
+ltotal<-as.numeric(ltotal)
+lday<-as.Date(lday)
+lday<-lday-1   ## Shift date back by one day. Rainfall is total to midnight and gets filed against yyyymmdd 24:00m, which is the same as yymmdd+1 00:00 
+
+ldd<-as.numeric(format(lday,"%d"))
+lmm<-as.numeric(format(lday,"%m"))
+lyy<-as.numeric(format(lday,"%Y"))
+lddmm<-as.character(format(lday,"%d-%B"))
+
+ldf <- data.frame(lday,ltotal,lsite,lddmm,lyy,lmm, stringsAsFactors=FALSE)
+as.factor(ldf$lyy)
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# REFERENCE DATA CALCULATION
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # CALCULATION OF LONG TERM RAINFALL QUANTILES FOR LENGTH OF AVAILABLE RECORD - 10%, 50% and 90%
 ## for each year, calculate cumulative rainfalls against each day, and store in matrix
 ## Create Matrix - 30 years by 366 days
-md <- matrix(data = NA, nrow = 365, ncol = 60, byrow = FALSE,
-       dimnames = NULL)
+md0 <- matrix(data = NA, nrow = 365, ncol = 31, byrow = FALSE,
+              dimnames = NULL)
 ## Load matrix with cummulative rainfalls
 j <- 1
-for(i in 1:length(unique(df$yy))) {
-  #print(unique(df$yy)[i])
-    ds<-subset(df,yy==unique(df$yy)[i])
-    a<-ds$total
-    ## adjust for leap years
-    
-    ## Option to remove leap years
-    if(unique(df$yy)[i] %% 4 == 0) {
-      a <- a[-60]
-    }
+
+
+## Populate Matrix with Jan-Dec data for each year
+for(x in 1:length(unique(df$yy))) {
+  ds<-subset(df,yy==unique(df$yy)[x])
+  a<-ds$total
+  cat(x,length(a),"\n")
+  if(unique(df$yy)[x] %% 4 == 0) {   ## If year a leap year [this is valid for range of years expected],
+    a <- a[-60]                      ## remove Feb-29
+  }
   
-  if(length(a)==365){
-  a <- a[c(182:365,1:181)]
-    
-  ## adding a place holder at the end of the year to make sure each year vector
-  ## is 366 items long - giving it a value of zero so not to affect cumulative
-  ## totals in cumulative totals
-  #if (length(a)==365)  a<-c(a,0)
-  ## Accumulate rainfalls and add to matrix
-  md[ , j]<-cumsum(a)
+  # where a full year's record is not available (typically the last year of the call), fill the rest of the day valuse
+  # for the year with NAs
+  if(length(a)<365){
+    b<-length(a)+1
+    a[b:365]<-NA
+  }
+  # Populate Matrix
+  md0[ , j]<-(a)
   j<-j+1
+}
+
+md1 <- md0
+##  Rearrange array - 
+##    Move "n" year jan-Jun to "n-1" year jan-jun
+##    --FOR FUTURE DEVELOPMENT, COULD SPECIFY DIFFERENT WATER YEARS AT THIS STEP--
+for(x in 2:length(md1[1,])) {        # Stepping across columns
+  md1[1:181,x-1] <- md1[1:181,x]      # Moving Jan-Jun period back one year in preparation for reordering year to Jul-Dec,Jan-Jun
+  md1[,x-1] <- md1[c(182:365,1:181),x-1]  # Reorder column to Jul-Dec,Jan-Jun
+}
+
+## Drop last year in matrix
+md2 <- md1[,-(length(md1[1,]))]
+
+
+md <- matrix(data = NA, nrow = 365, ncol = length(md2[1,]), byrow = FALSE,
+             dimnames = NULL) 
+## adding a place holder at the end of the year to make sure each year vector
+## is 366 items long - giving it a value of zero so not to affect cumulative
+## totals in cumulative totals
+#if (length(a)==365)  a<-c(a,0)
+
+## Accumulate rainfalls within matrix
+for(x in 1:length(md2[1,])) { 
+  md[ , x]<-cumsum(md2[ , x])
+}
+
+
+# Calculate quantile values for each day
+for(x in 1:365) {
+  if(x==1){
+    dq<-data.frame(quantile(md[x, ],prob=c(0.05,0.1,0.5,0.9,0.95),na.rm=TRUE),c(5,10,50,90,95),x)
+  } else {
+    q<-data.frame(quantile(md[x, ],prob=c(0.05,0.1,0.5,0.9,0.95),na.rm=TRUE),c(5,10,50,90,95),x)
+    dq<-rbind(dq,q)
   }
 }
 
 
-  # Calculate quantile values for each day
-  for(i in 1:365) {
-    if(i==1){
-      dq<-data.frame(quantile(md[i, ],prob=c(0.05,0.1,0.5,0.9,0.95),na.rm=TRUE),c(5,10,50,90,95),i)
-    } else {
-      q<-data.frame(quantile(md[i, ],prob=c(0.05,0.1,0.5,0.9,0.95),na.rm=TRUE),c(5,10,50,90,95),i)
-      dq<-rbind(dq,q)
-    }
-  }
 
+#Rename columns in data.frame
+colnames(dq)<-c("cumulrain","quantile","day")
 
-
-  #Rename columns in data.frame
-  colnames(dq)<-c("cumulrain","quantile","day")
-  
   #reshape for plotting
   #casting as data.frame i.e. Pivot by day x quantile, with values of cumulrain
   dq <- dcast(dq, day ~ quantile, sum, value.var="cumulrain", margins=FALSE)
@@ -130,6 +177,8 @@ for(i in 1:length(unique(df$yy))) {
 # PREPARE DATA FOR PLOTTING BARPLOT
 d <- read.zoo(df[ ,-3:-6]) # Removing unnecessary columns
 e <- read.zoo(cdf[ ,-3:-6]) # Removing unnecessary columns
+l <- read.zoo(ldf[ ,-3:-6]) # Removing unnecessary columns
+
 
 # CUMULATIVE VALUS SELECTED YEARS
 # Selecting last years time slice
@@ -140,8 +189,8 @@ index(x) <- 1:length(x)
 y <- window(d, start=as.Date("2003-07-01"), end=as.Date("2004-06-30"))
 index(y) <- 1:length(y)
 
-# Selecting 2012-13 year time slice
-z <- window(e, start=as.Date("2012-07-01"))
+# Selecting 2013-14 year time slice
+z <- window(e, start=as.Date("2013-07-01"))
 index(z) <- 1:length(z)
 
 # CALCULATING STATS OVER RECORD
@@ -155,7 +204,7 @@ index(y30mean)<-index(y30mean)[c(7:12,1:6)]
 
 # Applying monthlyfunction to this season and last season
 yNow  <- window(e, start=as.Date("2014-07-01"), end=as.Date("2015-06-30"))
-yLast <- window(d, start=as.Date("2012-07-01"), end=as.Date("2013-06-30"))
+yLast <- window(l, start=as.Date("2013-07-01"), end=as.Date("2014-06-30"))
 
 yNowSum  <- as.data.frame(monthlyfunction(yNow, FUN=sum, na.rm=TRUE))
 yLastSum <- as.data.frame(monthlyfunction(yLast, FUN=sum, na.rm=TRUE))
