@@ -9,26 +9,27 @@ library(hydroTSM)
 ## Getting Site Data
 s <- Sys.time()
 #HSERVER<-"hilltopdev"
-HSERVER<-c("hilltopserver")
-#RSite<-c("Pohangina at Makawakawa Divide")
+HSERVER<-c("hilltopdev")
+RSite<-c("Pohangina at Makawakawa Divide")
 #RSite<-c("Akitio at Toi Flat")
 #RSite<-c("Oroua at Rangiwahia")
-RSite<-c("Mangatainoka at Hillwood Hukanui")
-RSite<-c("Whanganui at Pipiriki")
-RSite<-c("Mangahao at Kakariki")
+#RSite<-c("Mangatainoka at Hillwood Hukanui")
+#RSite<-c("Whanganui at Pipiriki")
+#RSite<-c("Mangahao at Kakariki")
 pickYear<-2008
 
-cumulMax<-3000
+cumulMax<-6000
 barPlotMax<-600
 period<-"AVAILABLE" # "THIRTY YEARS" 
 
 ###########################################################
 ## PROCESSING FULL RAINFALL RECORD
-getData.xml <- xmlInternalTreeParse(paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall [Rainfall]&method=Total&interval=1 day&alignment=9:00:00",sep=""))
+url<- paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=1990-07-01&to=2013-07-01",sep="")
+getData.xml <- xmlInternalTreeParse(url)
 sites<-sapply(getNodeSet(getData.xml,"//Measurement/@SiteName"),as.character)
 
-day <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",sites[1],"']/Data/E/../E/T",sep="")), xmlValue)
-total <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",sites[1],"']/Data/E/../E/I1",sep="")), xmlValue)
+day <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",RSite,"']/Data/E/../E/T",sep="")), xmlValue)
+total <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",RSite,"']/Data/E/../E/I1",sep="")), xmlValue)
 site <- rep(sites[1],length(day))
 
 total<-as.numeric(total)
@@ -44,7 +45,8 @@ as.factor(df$yy)
 
 ###########################################################
 ## PROCESSING CURRENT YEAR RAINFALL RECORD
-getThisYear.xml <- xmlInternalTreeParse(paste("http://",HSERVER,".horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=9:00:00&from=2012-07-01",sep=""))
+url2 <- paste("http://",HSERVER,".horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",RSite,"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=0:00:00&from=2014-07-01&to=2015-01-22",sep="")
+getThisYear.xml <- xmlInternalTreeParse(url2)
 csites<-sapply(getNodeSet(getThisYear.xml,"//Measurement/@SiteName"),as.character)
 
 
@@ -152,8 +154,8 @@ coredata(y30mean)<-coredata(y30mean)[c(7:12,1:6)]
 index(y30mean)<-index(y30mean)[c(7:12,1:6)]
 
 # Applying monthlyfunction to this season and last season
-yNow  <- window(e, start=as.Date("2012-07-01"), end=as.Date("2013-06-30"))
-yLast <- window(d, start=as.Date("2011-07-01"), end=as.Date("2012-06-30"))
+yNow  <- window(e, start=as.Date("2014-07-01"), end=as.Date("2015-06-30"))
+yLast <- window(d, start=as.Date("2012-07-01"), end=as.Date("2013-06-30"))
 
 yNowSum  <- as.data.frame(monthlyfunction(yNow, FUN=sum, na.rm=TRUE))
 yLastSum <- as.data.frame(monthlyfunction(yLast, FUN=sum, na.rm=TRUE))

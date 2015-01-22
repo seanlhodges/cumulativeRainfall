@@ -13,7 +13,7 @@ shinyServer(function(input, output) {
 ## Getting Site Data
 #s <- Sys.time()
 #HSERVER<-"hilltopdev"
-HSERVER<-c("hilltopserver")
+HSERVER<-c("hilltopdev")
 #RSite<-c("Pohangina at Makawakawa Divide")
 #RSite<-c("Oroua at Rangiwahia")
 #RSite<-c("Akitio at Toi Flat")
@@ -34,7 +34,7 @@ output$dodgebarplot <- renderPlot({
   
   ###########################################################
   ## PROCESSING FULL RAINFALL RECORD
-  url <- paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",input$raingauge,"&Measurement=Rainfall [Rainfall]&method=Total&interval=1 day&to=2013-06-30",sep="")
+  url <- paste("http://",HSERVER,".horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",input$raingauge,"&&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=1990-07-01&to=2013-07-01",sep="")
 
   getData.xml <- xmlInternalTreeParse(url)
   cat(url,"\n")
@@ -58,7 +58,7 @@ output$dodgebarplot <- renderPlot({
   
   ###########################################################
   ## PROCESSING CURRENT YEAR RAINFALL RECORD
-  url <- paste("http://",HSERVER,".horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",input$raingauge,"&Measurement=Rainfall Total (1 Day)&from=2013-07-01&to=2014-06-30",sep="")
+  url <- paste("http://",HSERVER,".horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",input$raingauge,"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=0:00:00&from=2014-07-01&to=2015-06-30",sep="")
   getThisYear.xml <- xmlInternalTreeParse(url)
   cat(url,"\n")
 

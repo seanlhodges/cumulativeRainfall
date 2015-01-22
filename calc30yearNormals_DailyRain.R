@@ -102,42 +102,55 @@ for(i in 1:length(dfscan[,1])){
     # CALCULATION OF LONG TERM RAINFALL QUANTILES FOR LENGTH OF AVAILABLE RECORD - 10%, 50% and 90%
     ## for each year, calculate cumulative rainfalls against each day, and store in matrix
     ## Create Matrix - 30 years by 366 days
-    md <- matrix(data = NA, nrow = 365, ncol = 30, byrow = FALSE,
-                 dimnames = NULL)
+    md0 <- matrix(data = NA, nrow = 365, ncol = 30, byrow = FALSE,
+                  dimnames = NULL)
     ## Load matrix with cummulative rainfalls
     j <- 1
+    #cat(url,"\n")
+    cat(as.character(dfscan$sites[i]),"\n")
+    ## Populate Matrix with Jan-Dec data for each year
     for(x in 1:length(unique(df$yy))) {
-      #print(unique(df$yy)[i])
       ds<-subset(df,yy==unique(df$yy)[x])
       a<-ds$total
-
-      ## Adjust for leap years
-      ## - Removing value for the the leap-day, Feb-29, which is the 60th day of a leap year.
-      
+      cat(x,length(a),"\n")
       if(unique(df$yy)[x] %% 4 == 0) {   ## If year a leap year [this is valid for range of years expected],
         a <- a[-60]                      ## remove Feb-29
       }
       
-      
-      # Reorder days in year based on a Water year (http://en.wikipedia.org/wiki/Water_year)
-      # - The United States Geological Survey defines it as the period between October 1st 
-      #   of one year and September 30th of the next
-      
-      if(length(a)==365){
-        # Jul to Jun Year
-        a <- a[c(182:365,1:181)]
-        # USGS Water year
-        a <- a[c(274:365,1:273)]
-        
-        
-        ## adding a place holder at the end of the year to make sure each year vector
-        ## is 366 items long - giving it a value of zero so not to affect cumulative
-        ## totals in cumulative totals
-        #if (length(a)==365)  a<-c(a,0)
-        ## Accumulate rainfalls and add to matrix
-        md[ , j]<-cumsum(a)
-        j<-j+1
+      # where a full year's record is not available (typically the last year of the call), fill the rest of the day valuse
+      # for the year with NAs
+      if(length(a)<365){
+        b<-length(a)+1
+        a[b:365]<-NA
       }
+      # Populate Matrix
+      md0[ , j]<-(a)
+      j<-j+1
+    }
+    
+    md1 <- md0
+    ##  Rearrange array - 
+    ##    Move "n" year jan-Jun to "n-1" year jan-jun
+    ##    --FOR FUTURE DEVELOPMENT, COULD SPECIFY DIFFERENT WATER YEARS AT THIS STEP--
+    for(x in 2:length(md1[1,])) {        # Stepping across columns
+      md1[1:181,x-1] <- md1[1:181,x]      # Moving Jan-Jun period back one year in preparation for reordering year to Jul-Dec,Jan-Jun
+      md1[,x-1] <- md1[c(182:365,1:181),x-1]  # Reorder column to Jul-Dec,Jan-Jun
+    }
+    
+    ## Drop last year in matrix
+    md2 <- md1[,-(length(md1[1,]))]
+    
+    
+    md <- matrix(data = NA, nrow = 365, ncol = length(md2[1,]), byrow = FALSE,
+                 dimnames = NULL) 
+    ## adding a place holder at the end of the year to make sure each year vector
+    ## is 366 items long - giving it a value of zero so not to affect cumulative
+    ## totals in cumulative totals
+    #if (length(a)==365)  a<-c(a,0)
+    
+    ## Accumulate rainfalls within matrix
+    for(x in 1:length(md2[1,])) { 
+      md[ , x]<-cumsum(md2[ , x])
     }
     
     
@@ -155,6 +168,7 @@ for(i in 1:length(dfscan[,1])){
     
     #Rename columns in data.frame
     colnames(dq)<-c("cumulrain","quantile","day")
+    
     
     #reshape for plotting
     #casting as data.frame i.e. Pivot by day x quantile, with values of cumulrain
