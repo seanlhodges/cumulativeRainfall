@@ -11,15 +11,11 @@ s <- Sys.time()
 #HSERVER<-"hilltopdev"
 HSERVER<-c("hilltopdev")
 RSite<-c("Pohangina at Makawakawa Divide")
-#RSite<-c("Akitio at Toi Flat")
-#RSite<-c("Oroua at Rangiwahia")
-#RSite<-c("Mangatainoka at Hillwood Hukanui")
-#RSite<-c("Whanganui at Pipiriki")
-#RSite<-c("Mangahao at Kakariki")
-pickYear<-2014
+
+LastYear<-2014
 
 cumulMax<-6000
-barPlotMax<-600
+
 period<-"AVAILABLE" # "THIRTY YEARS" 
 
 ###########################################################
@@ -162,18 +158,18 @@ for(x in 1:365) {
 #Rename columns in data.frame
 colnames(dq)<-c("cumulrain","quantile","day")
 
-  #reshape for plotting
-  #casting as data.frame i.e. Pivot by day x quantile, with values of cumulrain
-  dq <- dcast(dq, day ~ quantile, sum, value.var="cumulrain", margins=FALSE)
-  #Rename columns in data.frame
-  colnames(dq)<-c("day","p5","p10","p50","p90","p95")
-  
-  # DONE
-  #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#reshape for plotting
+#casting as data.frame i.e. Pivot by day x quantile, with values of cumulrain
+dq <- dcast(dq, day ~ quantile, sum, value.var="cumulrain", margins=FALSE)
+#Rename columns in data.frame
+colnames(dq)<-c("day","p5","p10","p50","p90","p95")
 
-
-
+# DONE
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+##############################################################################################
 # PREPARE DATA FOR PLOTTING BARPLOT
 d <- read.zoo(df[ ,-3:-6]) # Removing unnecessary columns
 e <- read.zoo(cdf[ ,-3:-6]) # Removing unnecessary columns
@@ -182,15 +178,15 @@ l <- read.zoo(ldf[ ,-3:-6]) # Removing unnecessary columns
 
 # CUMULATIVE VALUS SELECTED YEARS
 # Selecting last years time slice
-x <- window(d, start=as.Date(paste(as.character(pickYear-1),"-07-01",sep="")), end=as.Date(paste(as.character(pickYear),"-06-30",sep="")))
+x <- window(l, start=as.Date(paste(as.character(LastYear-1),"-07-01",sep="")), end=as.Date(paste(as.character(LastYear),"-06-30",sep="")))
 index(x) <- 1:length(x)
 
 # Selecting 2003-04 Flood Time slice
 y <- window(d, start=as.Date("2003-07-01"), end=as.Date("2004-06-30"))
 index(y) <- 1:length(y)
 
-# Selecting 2013-14 year time slice
-z <- window(e, start=as.Date("2013-07-01"))
+# Selecting 2014-15 year time slice
+z <- window(e, start=as.Date("2014-07-01"))
 index(z) <- 1:length(z)
 
 # CALCULATING STATS OVER RECORD
@@ -237,20 +233,17 @@ melt.bar$monthnum<-factor(as.character(melt.bar$monthnum), levels=c(1:12), label
 bar <- acast(melt.bar, variable ~ monthnum, sum, margins=FALSE)
 
 ############################################################################################
-## Using Base Graphics Package
+## PLOTTING ROUTINE
+## NOTE: Using Base Graphics Package
 
 
 opar<-par()
-par(mfrow=c(1,1),mar=c(2,3,1,3)+0.1,cex.axis=0.6, cex.main=0.75, cex.lab=0.75, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
+par(mfrow=c(3,1),mar=c(2,3,1,3)+0.1,cex=0.9, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
 
-barplot(as.matrix(bar),  beside = TRUE, col = c("cornsilk3", "cornflowerblue", "coral3"), 
-        ylim = c(0, barPlotMax), ylab="Monthly rain (mm)", border=NA)
-title(main = paste("Monitoring Station: ",RSite,": record from ",min(df$yy),sep=""), font.main = 1)
-
-par(new=T)
-
-plot(cumsum(y), type="n", axes=FALSE,ylim = c(0, cumulMax), xlab="", ylab="")
-
+## PLOT 1 ## --------------------------------------------------------------------------------
+## Daily Cummulative Rainfall PLOT
+plot(cumsum(y), type="n", axes=FALSE, ylim = c(0, max(dq$p90)*1.2), xlab="", ylab="Accumulated rain (mm)") # bty='n'
+title(main = "Accumulated rainfall to date (mm)", font.main = 1.5)
 
 i.for <- 1:365
 i.back <- 365:1
@@ -262,31 +255,63 @@ y2.polygon <- c( dq$p95[i.for] , dq$p5[i.back] )
 #polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.1, maxColorValue=1), border = NA)
 polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)
 
-points(dq$p50,type="l", col="white", lwd=2, lty="solid")
+points(dq$p50,type="l", col="black", lwd=2, lty="solid")
 
-points(cumsum(x),type="l", col="blue",lwd=2)
-points(cumsum(y),type="l", col="red", lwd=2)
-points(cumsum(z),type="l", col="black", lwd=3)
-legend(x=cumulMax,
-       c("Average","Last Year","This Year"),
-       fill = c("cornsilk3", "cornflowerblue", "coral3"),
+points(cumsum(x),type="l", col="cornflowerblue",lwd=2)     ## Plotting last year
+#points(cumsum(y),type="l", col="red", lwd=2)    ## Plotting 2003-2004 year
+
+points(cumsum(z),type="l", col="coral3", lwd=3)   ## Plotting this year
+
+axis(side=2, outer=FALSE)
+
+
+legend(x=0,y=max(dq$p90)*1.4,legend= c("10-90%-ile","Median",as.character(LastYear),"This year"),
+       fill = c(rgb(0.2,0.2,0.2,0.3), "black", "cornflowerblue", "coral3"),
        cex=0.7,
        bty="n",
-       title="Monthly rain",
-       ncol=2,
-       border="white")
+       ncol=4,
+       border="black")
 
-legend(x=cumulMax/4*3+0.1*cumulMax,
-       c("10-90%-ile","Median",as.character(pickYear),"2004","This year"),
-       fill = c(rgb(0.2,0.2,0.2,0.3), "white", "blue","red","black"),
-       cex=0.7,
-       bty="n",
-       title="Accumulated rain",
-       ncol=2,
-       border="white")
 
-axis(side=4, outer=FALSE)
-mtext("Accumulated rain (mm)", side=4,line=2, cex=0.75)
+## PLOT 2 ## --------------------------------------------------------------------------------
+## Daily Departure from median rainfall PLOT
+
+# Empty plot to add cumulative rainfall values to.
+plot(cumsum(y), type="n", axes=FALSE, xlab="", ylim=c(-500,500),ylab="Difference from median (mm)") # bty='n'
+title(main = "Accumulated differences from Daily Median Rainfall to date (mm)", font.main = 1.5)
+
+cz <- cumsum(z)-dq$p50[1:length(z)]
+czv <- as.vector(cz)
+
+points(seq(0,0,length.out=365),type="l", col="black", lwd=2, lty="solid")
+points(czv,type="l", col="coral3", lwd=2, lty="solid")
+
+i.for <- 1:365
+i.back <- 365:1
+
+x.polygon <- c( i.for, i.back )
+y1.polygon <- c( czv[i.for] , 0[i.back] )
+y1.polygon[(length(czv)+1):730] <- 0
+
+polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)
+
+axis(side=2, outer=FALSE)
+
+## PLOT 3 ## --------------------------------------------------------------------------------
+## Monthly Summary Rainfall PLOT
+
+barplot(as.matrix(bar),  beside = TRUE, col = c("cornsilk3", "cornflowerblue", "coral3"), 
+        ylim = c(0, max(as.matrix(bar))*1.3), ylab="Monthly rain (mm)", border=TRUE)
+title(main = "Monthly Rainfall Summary", font.main = 1.5)
+box()
+
+legend(x=0, y=max(as.matrix(bar))*1.5, legend=c("Average","Last Year","This Year"),
+      fill = c("cornsilk3", "cornflowerblue", "coral3"),
+      cex=0.7,
+      bty="n",
+      ncol=3,
+      border="black")
+
 par(new=F)
 par(opar)
 
