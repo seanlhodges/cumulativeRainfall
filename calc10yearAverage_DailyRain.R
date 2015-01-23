@@ -164,9 +164,7 @@ for(i in 1:length(dfscan[,1])){
         dq<-rbind(dq,q)
       }
     }
-    
-    
-    
+
     #Rename columns in data.frame
     colnames(dq)<-c("cumulrain","quantile","day")
     
@@ -176,18 +174,13 @@ for(i in 1:length(dfscan[,1])){
     #Rename columns in data.frame
     colnames(dq)<-c("day","p5","p10","p50","p90","p95")
     
-    
     # save site reference data to project folder
     save(dq,file=paste("refdata",as.character(dfscan$sites[i]),".RData",sep=""))
     
     
     # DONE
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    
-    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
   }
-  
-  
 }
 
 

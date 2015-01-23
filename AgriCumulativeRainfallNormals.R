@@ -238,6 +238,7 @@ bar <- acast(melt.bar, variable ~ monthnum, sum, margins=FALSE)
 
 
 opar<-par()
+png(paste("//ares/Environmental Archive/Resource/Rainfall Statistics",RSite,".PNG",sep="/"),width=1024,height=680,units="px",res=92)
 par(mfrow=c(3,1),mar=c(2,3,1,3)+0.1,cex=0.9, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
 
 ## PLOT 1 ## --------------------------------------------------------------------------------
@@ -251,16 +252,12 @@ i.back <- 365:1
 x.polygon <- c( i.for, i.back )
 y1.polygon <- c( dq$p90[i.for] , dq$p10[i.back] )
 y2.polygon <- c( dq$p95[i.for] , dq$p5[i.back] )
-#polygon( x.polygon , y2.polygon , col=rgb(0.2,0.2,0.2,0.2, maxColorValue=1), border = NA)
-#polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.1, maxColorValue=1), border = NA)
+
 polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)
 
-points(dq$p50,type="l", col="black", lwd=2, lty="solid")
-
+points(dq$p50,type="l", col="black", lwd=2, lty="solid")   ## Plotting median
 points(cumsum(x),type="l", col="cornflowerblue",lwd=2)     ## Plotting last year
-#points(cumsum(y),type="l", col="red", lwd=2)    ## Plotting 2003-2004 year
-
-points(cumsum(z),type="l", col="coral3", lwd=3)   ## Plotting this year
+points(cumsum(z),type="l", col="coral3", lwd=3)            ## Plotting this year
 
 axis(side=2, outer=FALSE)
 
@@ -305,7 +302,7 @@ barplot(as.matrix(bar),  beside = TRUE, col = c("cornsilk3", "cornflowerblue", "
 title(main = "Monthly Rainfall Summary", font.main = 1.5)
 box()
 
-legend(x=0, y=max(as.matrix(bar))*1.5, legend=c("Average","Last Year","This Year"),
+legend(x=0, y=max(as.matrix(bar))*1.45, legend=c("Average","Last Year","This Year"),
       fill = c("cornsilk3", "cornflowerblue", "coral3"),
       cex=0.7,
       bty="n",
@@ -313,6 +310,8 @@ legend(x=0, y=max(as.matrix(bar))*1.5, legend=c("Average","Last Year","This Year
       border="black")
 
 par(new=F)
+dev.off()
+
 par(opar)
 
 print(Sys.time()-s)
