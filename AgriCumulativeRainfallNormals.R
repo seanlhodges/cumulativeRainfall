@@ -1,4 +1,4 @@
-library(shiny)
+
 library(XML)
 library(reshape2)
 library(zoo)
@@ -226,8 +226,10 @@ melt.bar$monthnum <- c(1:12)
 #melt.bar$monthnum<-factor(as.character(melt.bar$monthnum), levels=c(1:12), labels=c("Jan","Feb","Mar","Apr","May","Jun",
 #                                                                                    "Jul","Aug","Sep","Oct","Nov","Dec"),ordered=TRUE)
 
-melt.bar$monthnum<-factor(as.character(melt.bar$monthnum), levels=c(1:12), labels=c("Jul","Aug","Sep","Oct","Nov","Dec",
-                                                                                    "Jan","Feb","Mar","Apr","May","Jun"),ordered=TRUE)
+Jul2JunLabels<-c("Jul","Aug","Sep","Oct","Nov","Dec",
+              "Jan","Feb","Mar","Apr","May","Jun")
+
+melt.bar$monthnum<-factor(as.character(melt.bar$monthnum), levels=c(1:12), labels=Jul2JunLabels,ordered=TRUE)
 
 #casting as array
 bar <- acast(melt.bar, variable ~ monthnum, sum, margins=FALSE)
@@ -236,15 +238,20 @@ bar <- acast(melt.bar, variable ~ monthnum, sum, margins=FALSE)
 ## PLOTTING ROUTINE
 ## NOTE: Using Base Graphics Package
 
-
+## PLOT SETTINGS ## ----------------------------------------------------------------------
+outputType <- "image" # c("screen","image")
 opar<-par()
-png(paste("//ares/Environmental Archive/Resource/Rainfall Statistics",RSite,".PNG",sep="/"),width=1024,height=680,units="px",res=92)
+
+if(outputType=="image"){
+  png(paste("//ares/Environmental Archive/Resource/Rainfall Statistics/",RSite,".","PNG",sep=""),width=1024,height=680,units="px", res=96) ## ,quality=100 -- just for JPEGs
+}
+
 par(mfrow=c(3,1),mar=c(2,3,1,3)+0.1,cex=0.9, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
 
 ## PLOT 1 ## --------------------------------------------------------------------------------
 ## Daily Cummulative Rainfall PLOT
 plot(cumsum(y), type="n", axes=FALSE, ylim = c(0, max(dq$p90)*1.2), xlab="", ylab="Accumulated rain (mm)") # bty='n'
-title(main = "Accumulated rainfall to date (mm)", font.main = 1.5)
+title(main = "July to June rainfall accumulation to date (mm)", font.main = 1.5)
 
 i.for <- 1:365
 i.back <- 365:1
@@ -253,34 +260,49 @@ x.polygon <- c( i.for, i.back )
 y1.polygon <- c( dq$p90[i.for] , dq$p10[i.back] )
 y2.polygon <- c( dq$p95[i.for] , dq$p5[i.back] )
 
-polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)
+polygon( x.polygon , y2.polygon , col=rgb(0.1,0.1,0.1,0.2, maxColorValue=1), border = NA)  ##  5-95th %-ile band
+polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)  ## 10-90th %-ile band
 
 points(dq$p50,type="l", col="black", lwd=2, lty="solid")   ## Plotting median
 points(cumsum(x),type="l", col="cornflowerblue",lwd=2)     ## Plotting last year
 points(cumsum(z),type="l", col="coral3", lwd=3)            ## Plotting this year
 
 axis(side=2, outer=FALSE)
+axis(side=1, at=seq(14,365,by=31), labels=Jul2JunLabels, tck=0)
 
 
-legend(x=0,y=max(dq$p90)*1.4,legend= c("10-90%-ile","Median",as.character(LastYear),"This year"),
-       fill = c(rgb(0.2,0.2,0.2,0.3), "black", "cornflowerblue", "coral3"),
-       cex=0.7,
-       bty="n",
-       ncol=4,
-       border="black")
-
+if(outputType=="image"){
+  legend("topleft",legend= c("10-90%-ile","5-95%-ile","Median","2013-2014","2014-2015"),
+         fill = c(rgb(0.2,0.2,0.2,0.3),rgb(0.1,0.1,0.1,0.2), "black", "cornflowerblue", "coral3"),
+         cex=1,
+         bty="n",
+         ncol=5,
+         border="black")
+} else {
+  legend(x=0,y=max(dq$p90)*1.4,legend= c("10-90%-ile","5-95%-ile","Median","2013-2014","2014-2015"),
+         fill = c(rgb(0.2,0.2,0.2,0.3),rgb(0.1,0.1,0.1,0.2), "black", "cornflowerblue", "coral3"),
+         cex=0.7,
+         bty="n",
+         ncol=4,
+         border="black")
+  
+}
 
 ## PLOT 2 ## --------------------------------------------------------------------------------
 ## Daily Departure from median rainfall PLOT
 
 # Empty plot to add cumulative rainfall values to.
-plot(cumsum(y), type="n", axes=FALSE, xlab="", ylim=c(-500,500),ylab="Difference from median (mm)") # bty='n'
-title(main = "Accumulated differences from Daily Median Rainfall to date (mm)", font.main = 1.5)
+plot(cumsum(y), type="n", axes=FALSE, xlab="", ylim=c(-700,700),ylab="Difference from median (mm)")) # bty='n'
+title(main = "Accumulated difference from Daily Median Rainfall (mm)", font.main = 1.5)
+
+cx <- cumsum(x)-dq$p50[1:length(x)]
+cxv <- as.vector(cx)
 
 cz <- cumsum(z)-dq$p50[1:length(z)]
 czv <- as.vector(cz)
 
 points(seq(0,0,length.out=365),type="l", col="black", lwd=2, lty="solid")
+points(cxv,type="l", col="cornflowerblue", lwd=2, lty="solid")
 points(czv,type="l", col="coral3", lwd=2, lty="solid")
 
 i.for <- 1:365
@@ -293,6 +315,25 @@ y1.polygon[(length(czv)+1):730] <- 0
 polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)
 
 axis(side=2, outer=FALSE)
+axis(side=1, at=seq(14,365,by=31), labels=Jul2JunLabels, tck=0)
+
+
+if(outputType=="image"){
+  legend("topleft",legend= c("Median","2013-2014","2014-2015"),
+         fill = c("black", "cornflowerblue", "coral3"),
+         cex=1,
+         bty="n",
+         ncol=3,
+         border="black")
+} else {
+  legend(x=0,y=700*1.2,legend= c("Median","2013-2014","2014-2015"),
+         fill = c("black", "cornflowerblue", "coral3"),
+         cex=1,
+         bty="n",
+         ncol=3,
+         border="black")
+  
+}
 
 ## PLOT 3 ## --------------------------------------------------------------------------------
 ## Monthly Summary Rainfall PLOT
@@ -302,16 +343,29 @@ barplot(as.matrix(bar),  beside = TRUE, col = c("cornsilk3", "cornflowerblue", "
 title(main = "Monthly Rainfall Summary", font.main = 1.5)
 box()
 
-legend(x=0, y=max(as.matrix(bar))*1.45, legend=c("Average","Last Year","This Year"),
-      fill = c("cornsilk3", "cornflowerblue", "coral3"),
-      cex=0.7,
-      bty="n",
-      ncol=3,
-      border="black")
+if(outputType=="image"){
+  legend("topleft", legend=c("Average","2013-2014","2014-2015"),
+        fill = c("cornsilk3", "cornflowerblue", "coral3"),
+        cex=1,
+        bty="n",
+        ncol=3,
+        border="black")
+} else {
+  legend(x=0, y=max(as.matrix(bar))*1.45, legend=c("Average","2013-2014","2014-2015"),
+         fill = c("cornsilk3", "cornflowerblue", "coral3"),
+         cex=0.7,
+         bty="n",
+         ncol=3,
+         border="black")
 
-par(new=F)
-dev.off()
+}
+#par(new=F)
+if(outputType=="image"){
+  dev.off()
+}
 
 par(opar)
+
+###### END #####
 
 print(Sys.time()-s)
