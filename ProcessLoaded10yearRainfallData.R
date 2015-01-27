@@ -1,16 +1,27 @@
 
-## DEBUG SECTION FOR TESTING CODE AGAINST i=1
 
-for(siteIndex in 1:24){
+library(XML)
+library(reshape2)
+library(zoo)
+library(hydroTSM)
+
+LastYear<-2014
+generateSiteFiles<- FALSE
+
+## STEP 1 - Load Site Reference data
+load(file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep=""))  ## this loads in sites data.frame - dfscan
+
+
+for(siteIndex in 1:length(dfscan[,1])){
     cat(as.character(dfscan$sites[siteIndex]),"\n")
     
     ## Start [myCodeBlock] ----------------
-    load(file=paste("10YR_qdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in the data quantile data.frame - dq
-    load(file=paste("10YR_rdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in rainfall series data.frame - df
+    load(file=paste(RDataFilePath,"10YR_qdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in the data quantile data.frame - dq
+    load(file=paste(RDataFilePath,"10YR_rdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in rainfall series data.frame - df
     
     
     ## PROCESSING CURRENT YEAR RAINFALL RECORD -----------------------------------------
-    url2 <- paste("http://hilltopdev.horizons.govt.nz/boo.hts?service=Hilltop&request=GetData&Site=",as.character(dfscan$sites[siteIndex]),"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=0:00:00&from=2014-07-02&to=2015-07-01",sep="")
+    url2 <- paste("http://hilltopdev.horizons.govt.nz/telemetry.hts?service=Hilltop&request=GetData&Site=",as.character(dfscan$sites[siteIndex]),"&Measurement=Rainfall [SCADA Rainfall]&method=Total&interval=1 day&alignment=0:00:00&from=2014-07-02&to=2015-07-01",sep="")
     getThisYear.xml <- xmlInternalTreeParse(url2)
     csites<-sapply(getNodeSet(getThisYear.xml,"//Measurement/@SiteName"),as.character)
     
@@ -32,7 +43,7 @@ for(siteIndex in 1:24){
     as.factor(cdf$cyy)
     
     ## PROCESSING LAST YEARS RAINFALL RECORD  -----------------------------------------
-    url3<- paste("http://hilltopdev.horizons.govt.nz/provisional.hts?service=Hilltop&request=GetData&Site=",as.character(dfscan$sites[siteIndex]),"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=2013-07-02&to=2014-07-01",sep="")
+    url3<- paste("http://hilltopdev.horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",as.character(dfscan$sites[siteIndex]),"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=2013-07-02&to=2014-07-01",sep="")
     getLastYear.xml <- xmlInternalTreeParse(url3)
     lsites<-sapply(getNodeSet(getLastYear.xml,"//Measurement/@SiteName"),as.character)
     
@@ -187,7 +198,11 @@ for(siteIndex in 1:24){
         
         dczv <- data.frame(dfscan$sites[siteIndex],cday,czv)
         names(dczv) <- c("Sitename","Date","RainfallAccumulation")
-        write.csv(dczv,paste("//ares/Environmental Archive/Resource/Rainfall Statistics/",as.character(dfscan$sites[siteIndex]),".csv",sep=""),row.names=FALSE)
+        
+        ## Create Site files of rainfall data for the current Jul-Jun year
+        if(generateSiteFiles){
+             write.csv(dczv,paste("//ares/Environmental Archive/Resource/Rainfall Statistics/",as.character(dfscan$sites[siteIndex]),".csv",sep=""),row.names=FALSE)
+        }
         
         #write.csv(dczv[length(dczv[,1]),],paste("//ares/Environmental Archive/Resource/Rainfall Statistics/rainfall_accumulation.csv",sep=""),append=TRUE,row.names=FALSE)
         #write.csv(dczv[length(dczv[,1]),],file=c("Z:/data/RScript/cumulativeRainfall/rainfall_accumulation.csv"),row.names=FALSE)
@@ -201,8 +216,12 @@ for(siteIndex in 1:24){
         points(cxv,type="l", col="cornflowerblue", lwd=2, lty="solid")
         points(czv,type="l", col="coral3", lwd=2, lty="solid")
         
-        i.for <- 1:365
-        i.back <- 365:1
+        #i.for <- 1:365
+        #i.back <- 365:1
+        
+        # adjusting polygon to give a vertical line back to  zero
+        i.for <- c(1:length(czv),length(czv),(length(czv)+2):365)
+        i.back <-c(365:(length(czv)+2),length(czv),length(czv):1)
         
         x.polygon <- c( i.for, i.back )
         y1.polygon <- c( czv[i.for] , 0[i.back] )

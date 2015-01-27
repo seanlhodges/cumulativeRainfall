@@ -12,41 +12,40 @@
 
 library(XML)
 library(reshape2)
+library(zoo)
+library(hydroTSM)
 
-###########################################################
-## Pulling Rainfall Record
-HSERVER<-c("hilltopdev")
-LastYear<-2014
+### Declare variables --------------------
 
-## STEP 1 - Using server API to determine available rainfall sites ---------------------------------------
-# Based on the collection for rainfall, specify URL for 10 years
-# of daily rainfall record for every active rainfall site
+# Server
+myServer  <- "http://hilltopdev.horizons.govt.nz/"     ## Server address
+telemetry <- "data.hts"                                ## Telemetry file name registered on the server 
+archive   <- "provisional.hts"                             ## Archive file name registered on the server
+myCollctn <- "zVirtual%20Rainfall"                       ## Hilltop Collection providing rainfall sitenames:
+##   Collection needs to be in default project
+##   file on your Hilltop Server instance
 
-dataStart <- as.POSIXct(strptime("2003-01-01T00:00:00",format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
+# Measurements
+om_tlm_rain  <- "Rainfall%20[SCADA Rainfall]"               ## Rainfall measurement used in Telemetry file
+om_arc_rain  <- "Rainfall%20[Rainfall]"                     ## Rainfall measurement used in Archive
 
-url <- "http://hilltopdev.horizons.govt.nz/provisional.hts?service=Hilltop&request=GetData&Collection=zVirtual%20Rainfall&interval=1%20day&method=Total&from=2003-01-01&to=2013-12-31"
+# File output locations
+RDataFilePath <- "//ares/environmental archive/resource/Rainfall Statistics/R/"     ## File path - note the forward slashes: 
+csvFilePath   <- "//ares/environmental archive/resource/rainfall statistics/"       ##    R treats a backslash as an escape
+##    character.
+##    End path string with foward slash.
 
-getData.xml <- xmlInternalTreeParse(url)
-sites<-sapply(getNodeSet(getData.xml,"//Measurement/@SiteName"),as.character)
-
-minday <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement/Data/E[1]/T",sep="")), xmlValue)
-maxday <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement/Data/E[last()]/T",sep="")), xmlValue)
-
-minday <- as.POSIXct(strptime(minday,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
-maxday <- as.POSIXct(strptime(maxday,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
-
-
-
-# Setting flags for those sites that have a start date matching dataStart i.e have 30 years record
-flag10 <- (minday-dataStart) == 0
-
-# Create a dataframe to summarise what sites can be used for 10 year statistics
-dfscan_all <- data.frame(sites,flag10,minday,maxday)
-# A bit of a tidy up
-rm(sites,flag10,minday,maxday,dataStart,url)
+# Other
+yearStart  <- 2003
+LastYear   <- 2014
 
 
-dfscan <- subset(dfscan,flag10==TRUE)
+
+
+## STEP 1 - Load Site Reference data
+load(file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep=""))  ## this loads in sites data.frame - dfscan
+
+
 ## STEP 2 - Using SOS to call data and create 10 year data matrix ---------------------------------------
 # Using the list of sites, and constructing the SOS2.0 requests to deliver the data
 # as WaterML2
@@ -86,7 +85,7 @@ for(siteIndex in 1:length(dfscan[,1])){
     as.factor(cdf$cyy)
     
     ## PROCESSING LAST YEARS RAINFALL RECORD  -----------------------------------------
-    url3<- paste("http://hilltopdev.horizons.govt.nz/provisional.hts?service=Hilltop&request=GetData&Site=",as.character(dfscan$sites[siteIndex]),"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=2013-07-02&to=2014-07-01",sep="")
+    url3<- paste("http://hilltopdev.horizons.govt.nz/archive.hts?service=Hilltop&request=GetData&Site=",as.character(dfscan$sites[siteIndex]),"&Measurement=Rainfall&method=Total&interval=1 day&alignment=0:00:00&&from=2013-07-02&to=2014-07-01",sep="")
     getLastYear.xml <- xmlInternalTreeParse(url3)
     lsites<-sapply(getNodeSet(getLastYear.xml,"//Measurement/@SiteName"),as.character)
     

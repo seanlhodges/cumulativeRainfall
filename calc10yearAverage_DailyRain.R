@@ -1,10 +1,20 @@
+
+
+
 #####################################################################################################
-#  Name:       10 year index rainfall averages
-#  Desc:       Calculate daily average rainfall based on on 10 years of record for sites with 
-#              sufficient available data
-#  Output:     Site based reference data files ONLY
+#  
+#  Name:       Rainfall_referenceData_10yrs.R
+#  Purpose:    1. Determine those rainfall sites that have 10years+ available data
+#              2. Retrieve 10years daily rainfall totals
+#              3. Organise data into Jul-Jun years for output as reference data
+#              4. Calculate specified quantiles and output as reference data
+#
+#  Output:     Site-based reference data files
+#                Daily quantiles 5,10,50,90,95
+#                Daily rainfall totals over 10 years
+#
 #  Created by: seanlhodges
-#  Created on: 21-January-2015
+#  Created on: 27-January-2015
 #  
 #####################################################################################################
 
@@ -13,18 +23,48 @@
 
 library(XML)
 library(reshape2)
+library(zoo)
+library(hydroTSM)
 
-###########################################################
-## Pulling Rainfall Record
+### Declare variables --------------------
 
+# Server
+myServer  <- "http://hilltopdev.horizons.govt.nz/"     ## Server address
+telemetry <- "telemetry.hts"                                ## Telemetry file name registered on the server 
+archive   <- "provisional.hts"                             ## Archive file name registered on the server
+myCollctn <- "zVirtual Rainfall"                       ## Hilltop Collection providing rainfall sitenames:
+                                                       ##   Collection needs to be in default project
+                                                       ##   file on your Hilltop Server instance
+
+# Measurements
+om_tlm_rain  <- "Rainfall [SCADA Rainfall]"               ## Rainfall measurement used in Telemetry file
+om_arc_rain  <- "Rainfall [Rainfall]"                     ## Rainfall measurement used in Archive
+
+# File output locations
+RDataFilePath <- "//ares/environmental archive/resource/Rainfall Statistics/R/"     ## File path - note the forward slashes: 
+csvFilePath   <- "//ares/environmental archive/resource/rainfall statistics/"       ##    R treats a backslash as an escape
+                                                                                    ##    character.
+                                                                                    ##    End path string with foward slash.
+
+# Other
+yearStart  <- 2003
+
+
+
+## CALCULATE 10-year averages ----------------------------------------------------------------------------
 
 ## STEP 1 - Using server API to determine available rainfall sites ---------------------------------------
 # Based on the collection for rainfall, specify URL for 10 years
 # of daily rainfall record for every active rainfall site
 
-dataStart <- as.POSIXct(strptime("2003-01-01T00:00:00",format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
+startYear <- paste(yearStart,"-01-01T00:00:00",sep="") 
+dataStart <- as.POSIXct(strptime(startYear,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
 
-url <- "http://hilltopdev.horizons.govt.nz/provisional.hts?service=Hilltop&request=GetData&Collection=zVirtual%20Rainfall&interval=1%20day&method=Total&from=2003-01-01&to=2014-01-01"
+endYear   <- paste(yearStart+11,"-01-01T00:00:00",sep="") 
+dataEnd  <- as.POSIXct(strptime(endYear,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
+
+
+url <- paste(myServer,archive,"?service=Hilltop&request=GetData&Collection=",myCollctn,"&interval=1%20day&method=Total&from=",yearStart,"-01-01&to=",yearStart+11,"-01-01",sep="")
 
 getData.xml <- xmlInternalTreeParse(url)
 sites<-sapply(getNodeSet(getData.xml,"//Measurement/@SiteName"),as.character)
@@ -35,32 +75,41 @@ maxday <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement/Data/E[las
 minday <- as.POSIXct(strptime(minday,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
 maxday <- as.POSIXct(strptime(maxday,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
 
-# Setting flags for those sites that have a start date matching dataStart i.e have 30 years record
-flag10 <- (minday-dataStart) == 0
+# Setting flags for those sites that have a start date matching dataStart i.e have 10 years record
+flag10 <- (minday-dataStart) <= 0
 
 # Create a dataframe to summarise what sites can be used for 10 year statistics
 dfscan <- data.frame(sites,flag10,minday,maxday)
+# Filter based on flag10=TRUE and maxday=dataEnd
+dfscan <- subset(dfscan,dfscan$flag10==TRUE)
+dfscan <- subset(dfscan,dfscan$maxday>=dataEnd)
+
 # A bit of a tidy up
 rm(sites,flag10,minday,maxday,dataStart,url)
 
+## Storing Site Reference data for the daily calculation of rainfall departures
+save(dfscan,file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep="")) ## Rainfall totals
 
 
-## STEP 2 - Using SOS to call data and create 10 year data matrix ---------------------------------------
-# Using the list of sites, and constructing the SOS2.0 requests to deliver the data
-# as WaterML2
+## STEP 2 - RESTful call for data from server to create 10 year data matrix ---------------------------------------
+# Using the list of sites, and constructing the requests to deliver the data
+
 for(i in 1:length(dfscan[,1])){
-  url1 <- "http://hilltopdev.horizons.govt.nz/provisional.hts?service=SOS&request=GetObservation&FeatureOfInterest="
-  url2 <- "&observedProperty=Precipitation Total (1 Day)&temporalFilter=om:phenomenon,2003-01-02/2014-01-01"
-  
-
-  if(dfscan$flag10[i]==TRUE){
-    # construct SOS call
+    
+    url1 <- paste(myServer,archive,"?service=Hilltop&request=GetData&Site=",sep="")
+    url2 <- paste("&measurement=",om_arc_rain,"&interval=1%20day&method=Total&from=",yearStart,"-01-01&to=",yearStart+11,"-01-01",sep="")
+    
 
     url <- paste(url1,as.character(dfscan$sites[i]),url2,sep="")
     getData.xml <- xmlInternalTreeParse(url)
+   
     
-    day <- sapply(getNodeSet(getData.xml, paste("//wml2:point/wml2:MeasurementTVP/wml2:time",sep="")), xmlValue)
-    total <- sapply(getNodeSet(getData.xml, paste("//wml2:point/wml2:MeasurementTVP/wml2:value",sep="")), xmlValue)
+    day <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",as.character(dfscan$sites[i]),"']/Data/E/../E/T",sep="")), xmlValue)
+    total <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",as.character(dfscan$sites[i]),"']/Data/E/../E/I1",sep="")), xmlValue)
+    
+    
+    #day <- sapply(getNodeSet(getData.xml, paste("//wml2:point/wml2:MeasurementTVP/wml2:time",sep="")), xmlValue)
+    #total <- sapply(getNodeSet(getData.xml, paste("//wml2:point/wml2:MeasurementTVP/wml2:value",sep="")), xmlValue)
     site <- rep(dfscan$sites[i],length(day))
     
     day<-as.Date(day)
@@ -81,7 +130,8 @@ for(i in 1:length(dfscan[,1])){
     
     rm(day, total, site, dd, mm, yy, ddmm, url)
     
-    ## REFERENCE DATA CALCULATION 
+    ## STEP 3 - REFERENCE DATA CALCULATION 
+    
     # CALCULATION OF RAINFALL QUANTILES FOR LENGTH OF REQUESTED RECORD - 10%, 50% and 90%
     ## for each year, calculate cumulative rainfalls against each day, and store in matrix
     ## Create Matrix - 11 years by 366 days 
@@ -156,11 +206,11 @@ for(i in 1:length(dfscan[,1])){
     #Rename columns in data.frame
     colnames(dq)<-c("day","p5","p10","p50","p90","p95")
     
-    # save site reference data to project folder
-    save(dq,file=paste("10YR_qdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## accumulated quantile records
-    save(df,file=paste("10YR_rdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## Rainfall totals
+    # STEP 4 - SAVE SITE REFERENCE DATA to project folder
+    save(dq,file=paste(RDataFilePath,"10YR_qdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## accumulated quantile records
+    save(df,file=paste(RDataFilePath,"10YR_rdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## Rainfall totals
     
-  }
+  
 }
 
 
