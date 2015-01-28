@@ -43,7 +43,7 @@ library(hydroTSM)
 # Server
 myServer  <- "http://hilltopdev.horizons.govt.nz/"     ## Server address
 telemetry <- "telemetry.hts"                           ## Telemetry file name registered on the server 
-archive   <- "provisional.hts"                         ## Archive file name registered on the server
+archive   <- "archive.hts"                             ## Archive file name registered on the server
 myCollctn <- "zVirtual Rainfall"                       ## Hilltop Collection providing rainfall sitenames:
                                                        ##   Collection needs to be in default project
                                                        ##   file on your Hilltop Server instance
@@ -83,14 +83,15 @@ endYear   <- paste(yearStart+11,"-01-01T00:00:00",sep="")
 dataEnd  <- as.POSIXct(strptime(endYear,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
 
 
-# Build url to get last value only for requested measurement for each site in collection - this returns
-# the site names where requested measurementa available
-url <- paste(myServer,archive,"?service=Hilltop&request=GetData&Collection=",myCollctn,"&interval=1%20day&method=Total&from=Data end",sep="")
+# Build url to return sites in specified in collection 
+url <- paste(myServer,archive,"?service=Hilltop&request=CollectionList",sep="")
 url <- gsub(pattern = " ",replacement = "%20",url)
+
 # Call url and store xml
 getData.xml <- xmlInternalTreeParse(url)
 # parse the list of sites
-sites<-sapply(getNodeSet(getData.xml,"//Measurement/@SiteName"),as.character)
+sites <- sapply(getNodeSet(getData.xml, paste("//HilltopProject/Collection[@Name='",myCollctn,"']/Item/SiteName",sep="")), xmlValue)
+
 
 # With the list of sites returned by the collection, call each one and interrogate
 # response given by:
@@ -139,26 +140,21 @@ rm(sites,flag10,minday,maxday,dataStart,url)
 ## Storing Site Reference data for the daily calculation of rainfall departures
 save(dfscan,file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep="")) ## Rainfall totals
 
-
+rm(getData.xml, url)
 ## STEP 2 - RESTful call for data from server to create 10 year data matrix ---------------------------------------
 # Using the list of sites, and constructing the requests to deliver the data
 
 for(i in 1:length(dfscan[,1])){
     
     url1 <- paste(myServer,archive,"?service=Hilltop&request=GetData&Site=",sep="")
-    url2 <- paste("&measurement=",om_arc_rain,"&interval=1%20day&method=Total&from=",yearStart,"-01-01&to=",yearStart+11,"-01-01",sep="")
-    
+    url2 <- paste("&measurement=",om_arc_rain,"&interval=1 Day&method=Total&from=",yearStart,"-01-02&to=",yearStart+11,"-01-01",sep="")
 
     url <- paste(url1,as.character(dfscan$sites[i]),url2,sep="")
     getData.xml <- xmlInternalTreeParse(url)
-   
     
-    day <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",as.character(dfscan$sites[i]),"']/Data/E/../E/T",sep="")), xmlValue)
-    total <- sapply(getNodeSet(getData.xml, paste("//Hilltop/Measurement[@SiteName='",as.character(dfscan$sites[i]),"']/Data/E/../E/I1",sep="")), xmlValue)
+    day <- sapply(getNodeSet(getData.xml, "//Data/E/T"), xmlValue)
+    total <- sapply(getNodeSet(getData.xml, "//Data/E/I1"), xmlValue)
     
-    
-    #day <- sapply(getNodeSet(getData.xml, paste("//wml2:point/wml2:MeasurementTVP/wml2:time",sep="")), xmlValue)
-    #total <- sapply(getNodeSet(getData.xml, paste("//wml2:point/wml2:MeasurementTVP/wml2:value",sep="")), xmlValue)
     site <- rep(dfscan$sites[i],length(day))
     
     day<-as.Date(day)
@@ -192,6 +188,7 @@ for(i in 1:length(dfscan[,1])){
     #cat(as.character(dfscan$sites[i]),"\n")
     ## Populate Matrix with Jan-Dec data for each year
     for(x in 1:length(unique(df$yy))) {
+      x <- 1
       ds<-subset(df,yy==unique(df$yy)[x])
       a<-ds$total
       #cat(x,length(a),"\n")
