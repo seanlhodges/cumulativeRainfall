@@ -25,6 +25,7 @@
 #
 #  Notes:      1. Written for data in a HilltopServer environment
 #              2. Run daily to update plots and csv's
+#              3. Code update required after 30-June-2015
 #
 #
 #  Created by: seanlhodges
@@ -57,22 +58,20 @@ om_arc_rain  <- "Rainfall [Rainfall]"                     ## Rainfall measuremen
 # File output locations
 RDataFilePath <- "//ares/environmental archive/resource/Rainfall Statistics/R/"     ## File path - note the forward slashes: 
 csvFilePath   <- "//ares/environmental archive/resource/rainfall statistics/"       ##    R treats a backslash as an escape
-##    character.
-##    End path string with foward slash.
+imgFilePath   <- csvFilePath                                                        ##    character.
+#                                                                                   ##    End path string with foward slash.
 
 # Other
 yearStart  <- 2003
 LastYear   <- 2014
-generateSiteFiles<- FALSE
+generateSiteFiles<- TRUE
 
 
 ## STEP 1 - Load Site Reference data
 load(file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep=""))  ## this loads in sites data.frame - dfscan
 
 for(siteIndex in 1:length(dfscan[,1])){
-  
-  
-  ## Start [myCodeBlock] ----------------
+
   load(file=paste(RDataFilePath,"10YR_qdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in the data quantile data.frame - dq
   load(file=paste(RDataFilePath,"10YR_rdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in rainfall series data.frame - df
   
@@ -196,13 +195,19 @@ for(siteIndex in 1:length(dfscan[,1])){
       opar<-par()
       
       if(outputType=="image"){
-        png(paste("//ares/Environmental Archive/Resource/Rainfall Statistics/",as.character(dfscan$sites[siteIndex]),".","PNG",sep=""),width=1024,height=680,units="px", res=96) ## ,quality=100 -- just for JPEGs
+        png(paste(imgFilePath,as.character(dfscan$sites[siteIndex]),".","PNG",sep=""),width=1024,height=680,units="px", res=96) ## ,quality=100 -- just for JPEGs
       }
       
-      par(mfrow=c(3,1),mar=c(2,3,1,3)+0.1,cex=0.9, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
+      #par(mfrow=c(3,1),mar=c(2,3,1,3)+0.1,cex=0.9, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
+      #par(mar=c(2,3,1,3)+0.1,cex=0.9, mgp=c(1.5,0.4,0.0),tck=1,tcl=-0.3)
+      par(mar=c(2,4,3,3)+0.1,oma=c(0,0,1.5,0),cex=0.9,tck=1,tcl=-0.3)
       
+      layout(matrix(c(1,1,2,2,3,3),3,2,byrow = TRUE), heights= c(2,1,1), TRUE)
+      
+     
       ## PLOT 1 ## --------------------------------------------------------------------------------
       ## Daily Cummulative Rainfall PLOT
+
       plot(cumsum(y), type="n", axes=FALSE, ylim = c(0, max(dq$p90)*1.2), xlab="", ylab="Accumulated rain (mm)") # bty='n'
       title(main = "July to June rainfall accumulation to date (mm)", font.main = 1.5)
       
@@ -213,8 +218,10 @@ for(siteIndex in 1:length(dfscan[,1])){
       y1.polygon <- c( dq$p90[i.for] , dq$p10[i.back] )
       y2.polygon <- c( dq$p95[i.for] , dq$p5[i.back] )
       
-      polygon( x.polygon , y2.polygon , col=rgb(0.1,0.1,0.1,0.2, maxColorValue=1), border = NA)  ##  5-95th %-ile band
-      polygon( x.polygon , y1.polygon , col=rgb(0.2,0.2,0.2,0.3, maxColorValue=1), border = NA)  ## 10-90th %-ile band
+      polygon( x.polygon , y2.polygon , col="grey55", border = NA)  ##  5-95th %-ile band   DARK GREY
+      polygon( x.polygon , y1.polygon , col="grey85", border = NA)  ## 10-90th %-ile band   LIGHT GREY
+      
+      
       
       points(dq$p50,type="l", col="black", lwd=2, lty="solid")   ## Plotting median
       points(cumsum(x),type="l", col="cornflowerblue",lwd=2)     ## Plotting last year
@@ -225,8 +232,8 @@ for(siteIndex in 1:length(dfscan[,1])){
       
       
       if(outputType=="image"){
-        legend("topleft",legend= c("10-90%-ile","5-95%-ile","Median","2013-2014","2014-2015"),
-               fill = c(rgb(0.2,0.2,0.2,0.3),rgb(0.1,0.1,0.1,0.2), "black", "cornflowerblue", "coral3"),
+        legend("topleft",legend= c("10-90%-ile","5-95%-ile","10 yr Median","2013-2014","2014-2015"),
+               fill = c("grey85","grey55", "black", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
                ncol=5,
@@ -240,11 +247,12 @@ for(siteIndex in 1:length(dfscan[,1])){
                border="black")
         
       }
-      
+     
       ## PLOT 2 ## --------------------------------------------------------------------------------
       ## Daily Departure from median rainfall PLOT
       
       # Empty plot to add cumulative rainfall values to.
+      
       plot(cumsum(y), type="n", axes=FALSE, xlab="", ylim=c(-700,700),ylab="Difference from median (mm)") # bty='n'
       title(main = "Accumulated difference from Daily Median Rainfall (mm)", font.main = 1.5)
       
@@ -253,17 +261,19 @@ for(siteIndex in 1:length(dfscan[,1])){
       
       cz <- cumsum(z)-dq$p50[1:length(z)]   ## Timeseries data
       czv <- as.vector(cz)                  ## This years difference between median and the accumulating rainfall total
+       
+      cm <-   cumsum(z) / dq$p50[1:length(z)]     
+      cmv <- as.vector(cm)                  ## This years difference between median and the accummulating rainfall as a %
       
-      dczv <- data.frame(dfscan$sites[siteIndex],cday,czv)
-      names(dczv) <- c("Sitename","Date","RainfallAccumulation")
+      
+      dczv <- data.frame(dfscan$sites[siteIndex],cday,czv,cmv)
+      names(dczv) <- c("Sitename","Date","RainfallAccumulation","RainfallAccumPct")
       
       ## Create Site files of rainfall data for the current Jul-Jun year
       if(generateSiteFiles){
-        write.csv(dczv,paste("//ares/Environmental Archive/Resource/Rainfall Statistics/",as.character(dfscan$sites[siteIndex]),".csv",sep=""),row.names=FALSE)
+        write.csv(dczv,paste(csvFilePath,as.character(dfscan$sites[siteIndex]),".csv",sep=""),row.names=FALSE)
       }
       
-      #write.csv(dczv[length(dczv[,1]),],paste("//ares/Environmental Archive/Resource/Rainfall Statistics/rainfall_accumulation.csv",sep=""),append=TRUE,row.names=FALSE)
-      #write.csv(dczv[length(dczv[,1]),],file=c("Z:/data/RScript/cumulativeRainfall/rainfall_accumulation.csv"),row.names=FALSE)
       if(siteIndex==1){
         lastValues<-data.frame(dczv[length(dczv[,1]),])
       } else{
@@ -292,7 +302,7 @@ for(siteIndex in 1:length(dfscan[,1])){
       
       
       if(outputType=="image"){
-        legend("topleft",legend= c("Median","2013-2014","2014-2015"),
+        legend("topleft",legend= c("10yr Median","2013-2014","2014-2015"),
                fill = c("black", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
@@ -317,7 +327,7 @@ for(siteIndex in 1:length(dfscan[,1])){
       box()
       
       if(outputType=="image"){
-        legend("topleft", legend=c("Average","2013-2014","2014-2015"),
+        legend("topleft", legend=c("10yr Average","2013-2014","2014-2015"),
                fill = c("cornsilk3", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
@@ -332,6 +342,10 @@ for(siteIndex in 1:length(dfscan[,1])){
                border="black")
         
       }
+
+      ## PLOT TITLE ###
+      mtext(dfscan$sites[siteIndex],outer=TRUE)
+      
       #par(new=F)
       if(outputType=="image"){
         dev.off()
@@ -340,11 +354,13 @@ for(siteIndex in 1:length(dfscan[,1])){
       par(opar)
       
     } ## END IF statement regarding number of days in last years data  
-  } else {      ## END IF Statement regarding legnth of dq
-    cat(as.character(dfscan$sites[siteIndex]),": Empty reference data file\n")
-  }
+  } ## END IF Statement regarding legnth of dq
+  
+  # Clearing out site data loaded through by load()
+  rm(dq,df)
+  
 } ##  END FOR loop for iterating through sites in dfscan
 
 
 #output LastValues for upload by Hilltop
-write.csv(lastValues,paste("//ares/Environmental Archive/Resource/Rainfall Statistics/rainfall_accumulation.csv",sep=""),row.names=FALSE)
+write.csv(lastValues,paste(csvFilePath,"rainfall_accumulation.csv",sep=""),row.names=FALSE)
