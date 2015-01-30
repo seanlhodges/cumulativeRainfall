@@ -88,6 +88,8 @@ url <- paste(myServer,archive,"?service=Hilltop&request=CollectionList",sep="")
 
 # Call url and store xml
 getData.xml <- xmlInternalTreeParse(url)
+
+
 # parse the list of sites
 sites <- sapply(getNodeSet(getData.xml, paste("//HilltopProject/Collection[@Name='",myCollctn,"']/Item/SiteName",sep="")), xmlValue)
 
@@ -181,7 +183,7 @@ for(i in 1:length(dfscan[,1])){
         # CALCULATION OF RAINFALL QUANTILES FOR LENGTH OF REQUESTED RECORD - 10%, 50% and 90%
         ## for each year, calculate cumulative rainfalls against each day, and store in matrix
         ## Create Matrix - 11 years by 366 days 
-        md0 <- matrix(data = NA, nrow = 365, ncol = 11, byrow = FALSE,
+        md0 <- matrix(data = NA, nrow = 365, ncol = length(unique(df$yy)), byrow = FALSE,
                      dimnames = NULL)
         ## Load matrix with cummulative rainfalls
         j <- 1

@@ -276,8 +276,10 @@ for(siteIndex in 1:length(dfscan[,1])){
       
       if(siteIndex==1){
         lastValues<-data.frame(dczv[length(dczv[,1]),])
+        siteValues<-data.frame(dczv)
       } else{
         lastValues<-rbind.data.frame(lastValues,dczv[length(dczv[,1]),])
+        siteValues<-rbind.data.frame(siteValues,dczv)
       }
       
       points(seq(0,0,length.out=365),type="l", col="black", lwd=2, lty="solid")
@@ -364,3 +366,6 @@ for(siteIndex in 1:length(dfscan[,1])){
 
 #output LastValues for upload by Hilltop
 write.csv(lastValues,paste(csvFilePath,"rainfall_accumulation.csv",sep=""),row.names=FALSE)
+#output siteValues for upload by ArcGIS
+write.csv(siteValues,paste(csvFilePath,"rainfall_accumulation_all.csv",sep=""),row.names=FALSE)
+
