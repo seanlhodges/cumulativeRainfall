@@ -35,6 +35,7 @@ Note
 1. Scripts are written for data in a Hilltop Server environment. For other time series servers, you will need to ammend
   * the arguments used in the URL's to query the data
   * the XPATH used to extract data from the XML responses
+2. You will need to modify most of variables specified at the top of the scripts to match your local enviroments.
 
 Acknowledgements
 ----------------
