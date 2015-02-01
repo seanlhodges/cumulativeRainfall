@@ -1,85 +1,9 @@
 cumulativeRainfall.Rproj
 .Rproj.user
-refdataKahuterawa at Scotts Road.RData
-refdataAkitio at Toi Flat.RData
-refdataForest Rd Drain at Drop Structure.RData
-refdataKumeti at Rua Roa.RData
-refdataMakino at Cheltenham.RData
-refdataMakino at Halcombe Road.RData
-refdataMakuri at Bee 4 Trig.RData
-refdataManawatu at Apiti Track.RData
-refdataManawatu at Moutoa.RData
-refdataMangaetoroa at Scarrows.RData
-refdataMangahao at Kakariki.RData
-refdataMangaone at Milson Line.RData
-refdataMangaone at Valley Road.RData
-refdataMangatainoka at Hillwood Hukanui.RData
-refdataMatarawa at Matarawa Valley.RData
-refdataOhura at Tokorima.RData
-refdataOroua at Feilding.RData
-refdataOroua at Rangiwahia.RData
-refdataPohangina at Alphabet Hut.RData
-refdataPohangina at Delaware Ridge.RData
-refdataPohangina at Makawakawa Divide.RData
-refdataTamaki at Tamaki Reserve.RData
-refdataTiraumea at Alfredton.RData
-refdataUpper Mangahao at No.1 Dam.RData
-refdataWhangaehu at Tukino Repeater.RData
-refdataWhanganui at Pipiriki.RData
-refdataWhanganui at Te Porere.RData
-tmp1.R
-refdataKawhatau Catchment at Upper Kawhatau.RData
-Rplot.pdf
-Rplot01.pdf
-10YR_qdata Akitio at Toi Flat.RData
-10YR_qdata Kahuterawa at Scotts Road.RData
-10YR_qdata Kawhatau Catchment at Upper Kawhatau.RData
-10YR_qdata Kumeti at Rua Roa.RData
-10YR_qdata Makino at Cheltenham.RData
-10YR_qdata Makino at Halcombe Road.RData
-10YR_qdata Manawatu at Apiti Track.RData
-10YR_qdata Manawatu at Moutoa.RData
-10YR_qdata Mangaetoroa at Scarrows.RData
-10YR_qdata Mangahao at Kakariki.RData
-10YR_qdata Mangaone at Milson Line.RData
-10YR_qdata Mangaone at Valley Road.RData
-10YR_qdata Mangatainoka at Hillwood Hukanui.RData
-10YR_qdata Matarawa at Matarawa Valley.RData
-10YR_qdata Ohura at Tokorima.RData
-10YR_qdata Oroua at Rangiwahia.RData
-10YR_qdata Pohangina at Alphabet Hut.RData
-10YR_qdata Pohangina at Delaware Ridge.RData
-10YR_qdata Pohangina at Makawakawa Divide.RData
-10YR_qdata Tamaki at Tamaki Reserve.RData
-10YR_qdata Tiraumea at Alfredton.RData
-10YR_qdata Upper Mangahao at No.1 Dam.RData
-10YR_qdata Whangaehu at Tukino Repeater.RData
-10YR_qdata Whanganui at Pipiriki.RData
-10YR_rdata Akitio at Toi Flat.RData
-10YR_rdata Kahuterawa at Scotts Road.RData
-10YR_rdata Kawhatau Catchment at Upper Kawhatau.RData
-10YR_rdata Kumeti at Rua Roa.RData
-10YR_rdata Makino at Cheltenham.RData
-10YR_rdata Makino at Halcombe Road.RData
-10YR_rdata Manawatu at Apiti Track.RData
-10YR_rdata Manawatu at Moutoa.RData
-10YR_rdata Mangaetoroa at Scarrows.RData
-10YR_rdata Mangahao at Kakariki.RData
-10YR_rdata Mangaone at Milson Line.RData
-10YR_rdata Mangaone at Valley Road.RData
-10YR_rdata Mangatainoka at Hillwood Hukanui.RData
-10YR_rdata Matarawa at Matarawa Valley.RData
-10YR_rdata Ohura at Tokorima.RData
-10YR_rdata Oroua at Rangiwahia.RData
-10YR_rdata Pohangina at Alphabet Hut.RData
-10YR_rdata Pohangina at Delaware Ridge.RData
-10YR_rdata Pohangina at Makawakawa Divide.RData
-10YR_rdata Tamaki at Tamaki Reserve.RData
-10YR_rdata Tiraumea at Alfredton.RData
-10YR_rdata Upper Mangahao at No.1 Dam.RData
-10YR_rdata Whangaehu at Tukino Repeater.RData
-10YR_rdata Whanganui at Pipiriki.RData
-temp.csv
-rainfall_accumulation.csv
 AgriCumulativeRainfallNormals.R
-
+calc10yearAverage_DailyRain.R
+calc30yearNormals_DailyRain.R
+cumulative10yearAverage_DailyRain.R
+ProcessLoaded10yearRainfallData.R
+server.R
+ui.R
