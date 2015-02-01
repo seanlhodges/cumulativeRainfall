@@ -72,8 +72,8 @@ timeSpanlbl <- "10YR"     # used to add timerange label in filenames for output 
 LastYear    <- 2014       # used to specify end period for last years rainfall eg. the 2013-14 value for LastYear = 2014
 generateSiteFiles<- FALSE # output all daily rainfall to date for current Jul-Jun year for each site as a CSV
 
-thisYrlbl   <- paste(as.character(LastYear),"_",as.character(LastYear+1),sep="")
-lastYrlbl   <- paste(as.character(LastYear-1),"_",as.character(LastYear),sep="")
+thisYrlbl   <- paste(as.character(LastYear),"-",as.character(LastYear+1),sep="")
+lastYrlbl   <- paste(as.character(LastYear-1),"-",as.character(LastYear),sep="")
 
 
 
