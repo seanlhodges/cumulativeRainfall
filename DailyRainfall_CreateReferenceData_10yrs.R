@@ -31,7 +31,11 @@
 #####################################################################################
 
 
-# Load requried libraries
+# Load required libraries (download and install if missing, first)
+
+list.of.packages <- c("XML", "reshape2","zoo","hydroTSM")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
 
 library(XML)
 library(reshape2)
@@ -59,7 +63,9 @@ imgFilePath   <- csvFilePath                                                    
 #                                                                                   ##    End path string with foward slash.
 
 # Other
-yearStart  <- 2003
+yearStart   <- 2003
+timeSpan    <- 10         # years
+timeSpanlbl <- "10YR"     # used to add timerange label in filenames for output files.
 
 #Extract datasource from om_arc_rain string to use in querying XML later on
 a<-regexpr("\\[(.*?)\\]",om_arc_rain)
@@ -79,7 +85,7 @@ datasource <- regmatches(om_arc_rain,a)
 startYear <- paste(yearStart,"-01-01T00:00:00",sep="") 
 dataStart <- as.POSIXct(strptime(startYear,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
 
-endYear   <- paste(yearStart+11,"-01-01T00:00:00",sep="") 
+endYear   <- paste(yearStart+timeSpan+1,"-01-01T00:00:00",sep="") 
 dataEnd  <- as.POSIXct(strptime(endYear,format="%Y-%m-%dT%H:%M:%S",tz="Pacific/Auckland"))
 
 
@@ -182,7 +188,7 @@ for(i in 1:length(dfscan[,1])){
         
         # CALCULATION OF RAINFALL QUANTILES FOR LENGTH OF REQUESTED RECORD - 10%, 50% and 90%
         ## for each year, calculate cumulative rainfalls against each day, and store in matrix
-        ## Create Matrix - 11 years by 366 days 
+        ## Create Matrix - n years by 366 days 
         md0 <- matrix(data = NA, nrow = 365, ncol = length(unique(df$yy)), byrow = FALSE,
                      dimnames = NULL)
         ## Load matrix with cummulative rainfalls
@@ -256,8 +262,8 @@ for(i in 1:length(dfscan[,1])){
         colnames(dq)<-c("day","p5","p10","p50","p90","p95")
         
         # STEP 4 - SAVE SITE REFERENCE DATA to project folder
-        save(dq,file=paste(RDataFilePath,"10YR_qdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## accumulated quantile records
-        save(df,file=paste(RDataFilePath,"10YR_rdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## Rainfall totals
+        save(dq,file=paste(RDataFilePath,timeSpanlbl,"_qdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## accumulated quantile records
+        save(df,file=paste(RDataFilePath,timeSpanlbl,"_rdata ",as.character(dfscan$sites[i]),".RData",sep="")) ## Rainfall totals
         
     } else { dfscan$flag10[i] <- FALSE } ## end if for Sites with GAPS. If gaps found, reset flat to FALSE
   
@@ -269,6 +275,6 @@ for(i in 1:length(dfscan[,1])){
 dfscan <- subset(dfscan,dfscan$flag10==TRUE)
 
 ## Storing Site Reference data for the daily calculation of rainfall departures
-save(dfscan,file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep="")) ## Rainfall totals
+save(dfscan,file=paste(RDataFilePath,timeSpanlbl,"_RefData_SiteTable.RData",sep="")) ## Rainfall totals
 
 

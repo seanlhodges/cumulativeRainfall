@@ -34,7 +34,11 @@
 #####################################################################################
 
 
-# Load requried libraries
+# Load required libraries (download and install if missing, first)
+
+list.of.packages <- c("XML", "reshape2","zoo","hydroTSM")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
 
 library(XML)
 library(reshape2)
@@ -62,18 +66,24 @@ imgFilePath   <- csvFilePath                                                    
 #                                                                                   ##    End path string with foward slash.
 
 # Other
-yearStart  <- 2003
-LastYear   <- 2014
-generateSiteFiles<- TRUE
+yearStart   <- 2003
+timeSpan    <- 10         # years
+timeSpanlbl <- "10YR"     # used to add timerange label in filenames for output files.
+LastYear    <- 2014       # used to specify end period for last years rainfall eg. the 2013-14 value for LastYear = 2014
+generateSiteFiles<- FALSE # output all daily rainfall to date for current Jul-Jun year for each site as a CSV
+
+thisYrlbl   <- paste(as.character(LastYear),"_",as.character(LastYear+1),sep="")
+lastYrlbl   <- paste(as.character(LastYear-1),"_",as.character(LastYear),sep="")
+
 
 
 ## STEP 1 - Load Site Reference data
-load(file=paste(RDataFilePath,"10YR_RefData_SiteTable.RData",sep=""))  ## this loads in sites data.frame - dfscan
+load(file=paste(RDataFilePath,timeSpanlbl,"_RefData_SiteTable.RData",sep=""))  ## this loads in sites data.frame - dfscan
 
 for(siteIndex in 1:length(dfscan[,1])){
 
-  load(file=paste(RDataFilePath,"10YR_qdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in the data quantile data.frame - dq
-  load(file=paste(RDataFilePath,"10YR_rdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in rainfall series data.frame - df
+  load(file=paste(RDataFilePath,timeSpanlbl,"_qdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in the data quantile data.frame - dq
+  load(file=paste(RDataFilePath,timeSpanlbl,"_rdata ",as.character(dfscan$sites[siteIndex]),".RData",sep=""))  ## this loads in rainfall series data.frame - df
   
   if(length(dq[,1])!=0){
     cat(as.character(dfscan$sites[siteIndex]),"\n")
@@ -139,7 +149,7 @@ for(siteIndex in 1:length(dfscan[,1])){
       index(y) <- 1:length(y)
       
       # Selecting 2014-15 year time slice
-      z <- window(e, start=as.Date("2014-07-01"))
+      z <- window(e, start=as.Date(paste(as.character(LastYear),"-07-01",sep="")))
       index(z) <- 1:length(z)
       
       # CALCULATING STATS OVER RECORD
@@ -152,8 +162,8 @@ for(siteIndex in 1:length(dfscan[,1])){
       index(y10mean)<-index(y10mean)[c(7:12,1:6)]
       
       # Applying monthlyfunction to this season and last season
-      yNow  <- window(e, start=as.Date("2014-07-01"), end=as.Date("2015-06-30"))
-      yLast <- window(l, start=as.Date("2013-07-01"), end=as.Date("2014-06-30"))
+      yNow  <- window(e, start=as.Date(paste(as.character(LastYear),"-07-01",sep="")), end=as.Date(paste(as.character(LastYear+1),"-06-30",sep="")))
+      yLast <- window(l, start=as.Date(paste(as.character(LastYear-1),"-07-01",sep="")), end=as.Date(paste(as.character(LastYear),"-06-30",sep="")))
       
       yNowSum  <- as.data.frame(monthlyfunction(yNow, FUN=sum, na.rm=TRUE))
       yLastSum <- as.data.frame(monthlyfunction(yLast, FUN=sum, na.rm=TRUE))
@@ -232,14 +242,14 @@ for(siteIndex in 1:length(dfscan[,1])){
       
       
       if(outputType=="image"){
-        legend("topleft",legend= c("10-90%-ile","5-95%-ile","10 yr Median","2013-2014","2014-2015"),
+        legend("topleft",legend= c("10-90%-ile","5-95%-ile",paste(timeSpanlbl,"Median"),lastYrlbl,thisYrlbl),
                fill = c("grey85","grey55", "black", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
                ncol=5,
                border="black")
       } else {
-        legend(x=0,y=max(dq$p90)*1.4,legend= c("10-90%-ile","5-95%-ile","Median","2013-2014","2014-2015"),
+        legend(x=0,y=max(dq$p90)*1.4,legend= c("10-90%-ile","5-95%-ile",paste(timeSpanlbl,"Median"),lastYrlbl,thisYrlbl),
                fill = c(rgb(0.2,0.2,0.2,0.3),rgb(0.1,0.1,0.1,0.2), "black", "cornflowerblue", "coral3"),
                cex=0.7,
                bty="n",
@@ -304,14 +314,14 @@ for(siteIndex in 1:length(dfscan[,1])){
       
       
       if(outputType=="image"){
-        legend("topleft",legend= c("10yr Median","2013-2014","2014-2015"),
+        legend("topleft",legend= c(paste(timeSpanlbl,"Median"),lastYrlbl,thisYrlbl),
                fill = c("black", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
                ncol=3,
                border="black")
       } else {
-        legend(x=0,y=700*1.2,legend= c("Median","2013-2014","2014-2015"),
+        legend(x=0,y=700*1.2,legend= c(paste(timeSpanlbl,"Median"),lastYrlbl,thisYrlbl),
                fill = c("black", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
@@ -329,14 +339,14 @@ for(siteIndex in 1:length(dfscan[,1])){
       box()
       
       if(outputType=="image"){
-        legend("topleft", legend=c("10yr Average","2013-2014","2014-2015"),
+        legend("topleft", legend=c(paste(timeSpanlbl,"Average"),lastYrlbl,thisYrlbl),
                fill = c("cornsilk3", "cornflowerblue", "coral3"),
                cex=1,
                bty="n",
                ncol=3,
                border="black")
       } else {
-        legend(x=0, y=max(as.matrix(bar))*1.45, legend=c("Average","2013-2014","2014-2015"),
+        legend(x=0, y=max(as.matrix(bar))*1.45, legend=c(paste(timeSpanlbl,"Average"),lastYrlbl,thisYrlbl),
                fill = c("cornsilk3", "cornflowerblue", "coral3"),
                cex=0.7,
                bty="n",
