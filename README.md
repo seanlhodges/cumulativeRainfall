@@ -11,6 +11,7 @@ Description
 Two scripts are provided here. The first, **DailyRainfall_CreateReferenceData_10yrs.R**, creates reference data for a user-specified time period (10 years is used in the script). This reference data is stored locally on a file share and then re-used in the second script, **DailyRainfall_Accumulation_Outputs.R** for comparison against daily rainfalls and the output of charts for each rainfall station.
 
 **DailyRainfall_CreateReferenceData_10yrs.R**'s function is to:
+
 1. Discover those sites with the requisite measurements contained within the referenced file based on the collection name
 2. Determine which of those sites has requisite period of record
 3. Retrieve daily rainfall records for that period
@@ -20,6 +21,7 @@ Two scripts are provided here. The first, **DailyRainfall_CreateReferenceData_10
 7. Save as reference data
 
 **DailyRainfall_Accumulation_Outputs.R** function is to:
+
 1. Load the reference data
 2. Retrieve daily rainfall for current and previous year
 3. Munge data for plotting
